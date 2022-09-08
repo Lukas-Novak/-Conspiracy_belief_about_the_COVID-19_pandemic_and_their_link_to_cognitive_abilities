@@ -1,0 +1,816 @@
+---
+title             : "Religious fundamentalism but not analytical thinking predicts conspiracy bliefs"
+shorttitle        : "Short namName of the study"
+author: 
+  - name          : "Author one"
+    affiliation   : "3"
+    role:         # Contributorship roles (e.g., CRediT, https://casrai.org/credit/)
+      - Conceptualization
+      - Writing - Original Draft Preparation
+      - Writing - Review & Editing
+  - name          : "Author two"
+    role:         # Contributorship roles (e.g., CRediT, https://casrai.org/credit/)
+      - Conceptualization
+      - Writing - Original Draft Preparation
+      - Writing - Review & Editing
+  - name          : "Lukas Novak"
+    address       : "Univerzitni 244/22, 771 11, Olomouc, Czech Republic"
+    email         : "lukas.novak@oushi.upol.cz"
+    affiliation   : "1"
+    corresponding : yes    # Define only one corresponding author
+    role:
+      - Writing - Review & Editing, 
+      - Writing - Original Draft Preparation
+      - Writing - Review & Editing
+      - statistical analysis
+  - name          : "Author tree"
+    affiliation   : "1"
+    role:
+      - Writing - Review & Editing
+  - name          : "Author four"
+    affiliation   : "2"
+    role:
+      - Writing - Review & Editing
+affiliation:
+    
+  - id            : "1"
+    institution   : "Olomouc University Social Health Institute, Palacky University in Olomouc, Olomouc, Czech Republic" 
+  - id            : "2"
+    institution   : "2Department of Community and Occupational Medicine, University Medical Center Groningen, University of Groningen, Groningen, The Netherlands"
+authornote: |
+  Authors declare that they have no conflict of interest.
+abstract: |
+  One or two sentences providing a **basic introduction** to the field,  comprehensible to a scientist in any discipline.
+  
+  Two to three sentences of **more detailed background**, comprehensible  to scientists in related disciplines.
+  
+  One sentence clearly stating the **general problem** being addressed by  this particular study.
+  
+  One sentence summarizing the main result (with the words "**here we show**" or their equivalent).
+  
+  Two or three sentences explaining what the **main result** reveals in direct comparison to what was thought to be the case previously, or how the  main result adds to previous knowledge.
+  
+  One or two sentences to put the results into a more **general context**.
+  
+  Two or three sentences to provide a **broader perspective**, readily comprehensible to a scientist in any discipline.
+  
+  
+  <!-- https://tinyurl.com/ybremelq -->
+keywords          : "keywords"
+wordcount         : "X"
+link-citations    : yes
+linkcolor         : blue
+floatsintext      : no
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : no
+mask              : no
+always_allow_html : true
+draft             : no
+documentclass     : "apa6"
+classoption       : "man"
+output            : papaja::apa6_docx
+header-includes: # this works inly in PDF
+  - \usepackage{pdflscape}
+  - \newcommand{\blandscape}{\begin{landscape}}
+  - \newcommand{\elandscape}{\end{landscape}}
+bibliography: r-references.bib
+editor_options: 
+  chunk_output_type: console
+---
+
+# Introduction
+
+It is possible that religious fundamentalism is mediator of the relationships between intelligence and conspiracy beliefs in religious individuals. To test this, we conducted mediation analysis in Structural Equation Modelling (SEM) framework.
+
+```{r setup, include = FALSE}
+library(papaja)
+
+lapply(packages, library, character.only = TRUE)
+
+if(any(base::grepl("Win",sessionInfo()$running))) {r_refs("r-references.bib")} 
+
+# Seed for random number generation
+set.seed(565464621)
+
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+```
+
+```{r data loadings, include=FALSE}
+#......................................................
+data.exlore.raw <- readRDS(paste(getwd(),"/Data/data.explore.Rds", sep = ""))
+
+data.exlore = data.exlore.raw %>% 
+    filter(!low_q_res %in% "LQ") %>% 
+  select(!contains(c("_order"))) 
+```
+
+# Methods
+
+```{r data load and variable recode, include=FALSE}
+# names for recode of the COSNP
+  col.names <- data.exlore %>% 
+    select(starts_with(c("CONSP_"))) %>%
+    select(!contains(c("_order"))) %>% 
+    names
+
+# scoring MDFI 
+data.exlore = data.exlore %>% 
+  mutate(across(tidyr::ends_with(c("MDFI_1","MDFI_2","MDFI_3","MDFI_7", # item 13 was updated to fit more to current context
+                                     "MDFI_8","MDFI_10","MDFI_6")), ~dplyr::recode(.,     # item 1R is reworded first item
+                                                                       "1"= 5, 
+                                                                       "2"= 4, 
+                                                                       "3"= 3, 
+                                                                       "4"= 2, 
+                                                                       "5"= 1))) 
+data.exlore = data.exlore %>% 
+  mutate(rec_RSPM_11 = ifelse(RSPM_11== 4, 1,0),
+         rec_RSPM_24 = ifelse(RSPM_24== 5,1,0),
+         rec_RSPM_28 = ifelse(RSPM_28== 8,1,0),
+         rec_RSPM_36 = ifelse(RSPM_36== 2,1,0),
+         rec_RSPM_43 = ifelse(RSPM_43== 5,1,0),
+         rec_RSPM_48 = ifelse(RSPM_48== 6,1,0),
+         rec_RSPM_49 = ifelse(RSPM_49== 7,1,0),
+         rec_RSPM_53 = ifelse(RSPM_53== 1,1,0),
+         rec_RSPM_55 = ifelse(RSPM_55== 1,1,0),
+         RSPM = rowSums(across(starts_with("rec_RSPM_"))),
+         MDFI = rowMeans(across(c("MDFI_1R", "MDFI_2", "MDFI_3","MDFI_4","MDFI_5",
+                           "MDFI_6","MDFI_7","MDFI_8","MDFI_9","MDFI_10",
+                           "MDFI_11","MDFI_12","MDFI_13","MDFI_14","MDFI_15"))), 
+         CRT = rowSums(across(starts_with("CRT_rec_"))),
+        Religious_status = case_when(Religiosity == "Yes, I am a member or church/rel.society" ~ "Believer",
+                                      Religiosity == "Yes, but I am not a member of church/rel.society" ~ "Believer",
+                                      TRUE ~ "Non Believer"),
+        Education = recode_factor(Education,
+                                  "High school"="Higher vocational school or high school",
+                                  "Higher vocational school"="Higher vocational school or high school",
+                                  "other: Ph.D."="University",
+                                  "University bachelor"="University",
+                                  "University master"="University",
+                                  "University Dr"="University"),
+        Economical_status = recode_factor(Economical_status,
+                                          "Invalidity pensioner"="Pensioner",
+                                          "In household"="Without work",
+                                          "Maternity leave"="Without work",
+                                          "other: zaměstnaný v dlouhodobé pracovní neschopnosti"="Without work",
+                                          "other: pestoun"= NA_character_,
+                                          "other: brigádník"= NA_character_,
+                                          "other: invalidní duchod"="Pensioner",
+                                          "other: pracující důchodce"= NA_character_,
+                                          "other: zaměstnanec na zkrácený pracovní úvaze, částečný invalidní důchod"= NA_character_,
+                                          "other: osoba pečující o postiženou osobu"="Without work",
+                                          "other: pracující zaměstnaný důchodce, podnikatel"= NA_character_,
+                                          "other: péče o osobu blízkou"="Without work",
+                                          "other: 1) starobní důchod + 2) DPČ + 3) HPP"="Pensioner",
+                                          "other: student a živnostník"= NA_character_,
+                                          "other: Pracující důchodce -OSVČ"= NA_character_,
+                                          "other: příspěvek na péči o dítě"= NA_character_,
+                                          "other: pracující invalidní důchodce"= NA_character_,
+                                          "other: samoplátce"= NA_character_,
+                                          "other: brigádník "= NA_character_
+                                          ),
+        Education = recode_factor(Education,
+                                  "Basic school" = "Basic school",
+                                  "Vocational school or non - maturity high school" = "Vocational school or non - maturity high school",
+                                  "Higher vocational school or high school" = "Higher vocational school or high school",
+                                  "University" = "University", .ordered = T)
+        )
+
+data.exlore = data.exlore %>% 
+  bind_cols(setNames(data.exlore[col.names], paste0("rec_", col.names)))  %>% 
+  mutate(across(starts_with("rec_CONSP_"), ~dplyr::recode(.,
+                                                "0" = "0", # Do not correspond at all
+                                                "1"=  "0", # Somewhat do not correspond
+                                                "2" = "1", # I do not know
+                                                "3" = "1", # Somewhat correspond
+                                                "4" = "1")), # Completely correspond
+         across(starts_with("rec_CONSP_"), ~ as.numeric(.)),
+         CONSP = rowSums(across(starts_with("rec_CONSP_")), na.rm = T))
+
+per.male_female.s1=table(data.exlore$Gender)/length(data.exlore$Gender) 
+
+# selecting only religious individuals
+data.exlore.relig.without.rem.search.CRT = data.exlore %>%  
+    filter(Religiosity %in% c("Yes, I am a member or church/rel.society", "Yes, but I am not a member of church/rel.society")) %>% 
+    mutate(Religiosity = droplevels(Religiosity))
+
+# selecting only individuals who did not search CRT right responses on internet
+data.exlore.relig.rem.search.CRT = data.exlore.relig.without.rem.search.CRT %>%  
+    filter(CRT_supp_3 == 0 | is.na(CRT_supp_3)) 
+
+# filtering individuals who in a past did not met all CRT items present in dataset  
+data.exlore.relig = data.exlore.relig.rem.search.CRT %>%  
+      filter(CRT_supp_1 < 5 | is.na(CRT_supp_1)) # we removed only people who already know all CRT questions for the following reasons: first, after removal of all people who did already new any CRT item, we would have only 247 people for analysis, which would probably affects the results heavily. However, if we remove only participants, who knew all of CRT items we would remove those participants with heaviest impact on our results while still keeping relatively large number of participants for our analyses i.e.  384. 
+
+# percent missing of the MDFI - in religious individuals 
+mis.perc.mdfi <-round(sum(is.na(data.exlore.relig$MDFI))/nrow(data.exlore.relig)*100, digits = 2)
+
+# percent missing of the RSPM - in religious individuals
+mis.perc.rspm <- round(sum(is.na(data.exlore.relig$RSPM))/nrow(data.exlore.relig)*100, digits = 2)
+
+# percent missingness is done in religious individuals to make missing percentage comparable
+```
+
+```{r outliers screening, inconsistent responding detection, include=FALSE}
+# calculating MAD 
+out_MAD.RSPM=outliers_mad(data.exlore.relig$RSPM, b = 1.4826,threshold = 2.5, na.rm = T) 
+
+# calculating MAD 
+out_MAD.MDFI=outliers_mad(data.exlore.relig$MDFI, b = 1.4826,threshold = 2.5, na.rm = T) 
+
+# data.exlore.relig[c(out_MAD.MDFI[["outliers_pos"]]), ] %>% select(starts_with(c("MDFI_","RSPM_"))) %>% view()
+```
+
+```{r missing data analysis, include=FALSE}
+MCAR.t=MissMech::TestMCARNormality(data = select(.data = data.exlore, starts_with(c("rec_RSPM",
+                                                                           "MDFI_",
+                                                                           "Age"))))
+```
+
+```{r multivariate normality, eval=FALSE, include=FALSE}
+# MULTIVARIATE NORMALITY 
+# RSPM
+mvn(data = select(.data = data.exlore.relig, starts_with("RSPM")),
+    mvnTest = "mardia", univariatePlot = "histogram")
+#.................................................................
+# MDFI
+mvn(data = select(.data = data.exlore.relig, starts_with("MDFI")),
+    mvnTest = "mardia", univariatePlot = "histogram")
+```
+
+```{r Homoscedasticity_and_other_assumptions, include=FALSE}
+# fake regression 
+random=rchisq(nrow(data.exlore.relig), 5) # generate random data
+fake_regres=lm(random~., data= data.exlore.relig %>% select(ends_with(c("RSPM","MDFI")))) # run fake regression
+# run diagnostics plots 
+plot(fake_regres) 
+# testing homogenity of variances
+bp.t.1 = car::ncvTest(fake_regres) # homogeneity of variances can be rejected
+# bp.t.1=lmtest::bptest(fake_regres) 
+```
+
+```{r multicolinearity, include=FALSE}
+## Create random binary variable
+data.exlore.relig$randomvar <- rnorm(nrow(data.exlore.relig), 25, 0.8)
+
+## Model and VIF
+vif.lm <- lm(randomvar ~ RSPM + MDFI + CRT, data=data.exlore.relig)
+
+# VIF 
+vif.value=performance::multicollinearity(vif.lm) # performance package indicates increase VIF in item 1 and 3
+```
+
+# Measures
+
+```{r internal consistency examination, include=FALSE}
+# MDFI
+MDFI.rel=ufs::scaleStructure(select(c("MDFI_12", "MDFI_10", "MDFI_1", "MDFI_2", "MDFI_4", "MDFI_6", 
+"MDFI_3", "MDFI_13", "MDFI_11", "MDFI_14", "MDFI_5", "MDFI_9", 
+"MDFI_7", "MDFI_1R", "MDFI_8", "MDFI_15"), .data = data.exlore.relig), digits = 2, poly = TRUE, samples = 5000)
+
+# CONSP 
+CONSP.rel=scaleStructure(select(c("rec_CONSP_4", 
+"rec_CONSP_8", "rec_CONSP_1", "rec_CONSP_3", "rec_CONSP_2", "rec_CONSP_19", 
+"rec_CONSP_5", "rec_CONSP_9", "rec_CONSP_20", "rec_CONSP_18", 
+"rec_CONSP_16", "rec_CONSP_7", "rec_CONSP_15", "rec_CONSP_17", 
+"rec_CONSP_6", "rec_CONSP_relig_3", "rec_CONSP_relig_5", "rec_CONSP_relig_1", 
+"rec_CONSP_relig_4", "rec_CONSP_relig_2"), .data = data.exlore.relig), digits = 2,  poly = TRUE, ci = T, samples = 5000)
+
+# RSPM
+RSPM.rel=ufs::scaleStructure(select(c("rec_RSPM_11", "rec_RSPM_24", "rec_RSPM_28", 
+"rec_RSPM_36", "rec_RSPM_43", "rec_RSPM_48", "rec_RSPM_49", "rec_RSPM_53", 
+"rec_RSPM_55"), .data = data.exlore.relig), digits = 2, poly = TRUE, samples = 5000)
+
+# CRT
+CRT.rel=ufs::scaleStructure(select(c("CRT_rec_1", "CRT_rec_2", "CRT_rec_3"), .data = data.exlore.relig), digits = 2, poly = TRUE, samples = 5000)
+```
+
+## MDFI
+
+Cronbach's alpha and McDonald's omega in current study was satisfactory: $\alpha$ = `r round(MDFI.rel$intermediate$alpha.ordinal.ci$est,digits=2)`, 95% CI [`r round(MDFI.rel$intermediate$alpha.ordinal.ci$ci.lower,digits=2)` - `r round(MDFI.rel$intermediate$alpha.ordinal.ci$ci.upper,digits=2)`], $\omega_t$ = `r round(MDFI.rel$intermediate$omega.ordinal$est, digits=2 )`, 95% CI [`r round(MDFI.rel$intermediate[["omega.ordinal.ci"]]$ci.lower, digits = 2)` - `r round(MDFI.rel$intermediate[["omega.ordinal.ci"]]$ci.upper, digits = 2)`].
+
+## CONSP
+
+The score was measured on five-point Likert scale.  Each theory was answered from “Do not correspond at all” (0), “Somewhat do not correspond” (1), “I don’t know” (2), to “Somewhat correspond” (3), and “Completely correspond” (4). For the purpose of further analysis Likert scale was dichotomized such that respondents who answered 0 and 1 were classified as **prone to believe in conspiracy theories** they respond on, and those who answered 2, 3, 4 were classified as **not prone to believe in conspiracy theories**. For each theory respondents believe in, they scored 1 point, which means the summary score ranges from 0 to 20. 
+
+
+Cronbach's alpha and McDonald's omega in current study was satisfactory: $\alpha$ = `r round(CONSP.rel$intermediate$alpha.ordinal.ci$est,digits=2)`, 95% CI [`r round(CONSP.rel$intermediate$alpha.ordinal.ci$ci.lower,digits=2)` - `r round(CONSP.rel$intermediate$alpha.ordinal.ci$ci.upper,digits=2)`], $\omega_t$ = `r round(CONSP.rel$intermediate$omega.ordinal$est, digits=2 )`, 95% CI [`r round(CONSP.rel$intermediate[["omega.ordinal.ci"]]$ci.lower, digits = 2)` - `r round(CONSP.rel$intermediate[["omega.ordinal.ci"]]$ci.upper, digits = 2)`].
+
+## RSPM
+
+Cronbach's alpha and McDonald's omega in current study was satisfactory: $\alpha$ = `r round(RSPM.rel$intermediate$alpha.ordinal.ci$est,digits=2)`, 95% CI [`r round(RSPM.rel$intermediate$alpha.ordinal.ci$ci.lower,digits=2)` - `r round(RSPM.rel$intermediate$alpha.ordinal.ci$ci.upper,digits=2)`], $\omega_t$ = `r round(RSPM.rel$intermediate$omega.ordinal$est, digits=2 )`, 95% CI [`r round(RSPM.rel$intermediate[["omega.ordinal.ci"]]$ci.lower, digits = 2)` - `r round(RSPM.rel$intermediate[["omega.ordinal.ci"]]$ci.upper, digits = 2)`].
+
+## CRT
+
+Cronbach's alpha and McDonald's omega in current study was satisfactory: $\alpha$ = `r round(CRT.rel$intermediate$alpha.ordinal.ci$est,digits=2)`, 95% CI [`r round(CRT.rel$intermediate$alpha.ordinal.ci$ci.lower,digits=2)` - `r round(CRT.rel$intermediate$alpha.ordinal.ci$ci.upper,digits=2)`], $\omega_t$ = `r round(CRT.rel$intermediate$omega.ordinal$est, digits=2 )`, 95% CI [`r round(CRT.rel$intermediate[["omega.ordinal.ci"]]$ci.lower, digits = 2)` - `r round(CRT.rel$intermediate[["omega.ordinal.ci"]]$ci.upper, digits = 2)`].
+
+## Participants
+
+After data collection, we initially collected data from `r nrow(data.exlore.raw)` respondents. However, there was need to remove low quality respondents (*n* = `r nrow(data.exlore.raw) - nrow(data.exlore)`). This resulted in `r nrow(data.exlore)` subjects. In the further step, we performed outlier screening using Median Absolute Deviation. The aim of this screening was to identify participants, who answered questionnaires items in the uniform way. In total we identified `r length(out_MAD.MDFI$outliers)+length(out_MAD.RSPM$outliers)` outliers. However, non of these respondents seem to answer items across questionnaires in the same way. Thus, all of these respondents were kept in dataset. For the purposes of the SEM, we removed participants based on following criteria: first, they were non-religious participants (*n* = `r nrow(data.exlore) - nrow(data.exlore.relig.without.rem.search.CRT)`), and thus did not filled the MDFI items. Second, we removed respondents, who tried to find right answer to the CRT items on internet during questionnaire filling (*n* = `r nrow(data.exlore.relig.without.rem.search.CRT) - nrow(data.exlore.relig.rem.search.CRT)`). Third, due to an influence of the practice effect, subjects who were already familiar with all CRT questions were also removed. (*n* = `r nrow(data.exlore.relig.rem.search.CRT) - nrow(data.exlore.relig)`). Thus, final sample consist of `r nrow(data.exlore.relig)` participants (Age: *M* = `r mean(data.exlore$Age, na.rm = T) %>% round(digits = 2)`, *SD* = `r sd(data.exlore$Age, na.rm = T) %>% round(digits = 2)`, Females: `r round(per.male_female.s1[["Female"]]*100,digits = 2)`%).
+
+## Statistical analysis
+
+Missing data analysis using Little MCAR test suggested that values are missing completely on random. For this reason, incomplete records (RSPM = `r mis.perc.rspm`%, MDFI = `r mis.perc.mdfi`%) were removed list-wise. Multivariate test of skewness and kurtosis indicated that normality assumption can be rejected. Thus, non-parametric methods were used during statistical analysis. The Breusch--Pagan test indicated that homogeneity of variances is met in our data ($\chi^2$ = `r round(bp.t.1$ChiSquare,digits=2)`, df = `r bp.t.1$Df`, `r format_p(bp.t.1$p)`. Variance Inflation Factor values (`r round(max(vif.value$VIF),digits = 2)`) indicated no multicolinearity in our data. To compare socio-demographic groups in analytical thinking, general intelligence and religious fundamentalism, we used non-parametric version of analysis of variance (Kruskal--Wallis test) which was followed by non-parametric post-hoc tests i.e. Games-Howell and Dunn test. Structural Equation Modelling (SEM) was used to explore relationships between variables of interest. To fit models consisting of categorical variables, we used Diagonally Weighted Least Square estimator (DWLS) on polychoric correlation matrix. In all SEM models, age, gender and education were statistically controlled. In line with practice used in previous studies [@sinayev2015], RSPM was added into the SEM model first. In the next two steps, MDFI and CRT were added. To evaluate model fit, we used Comparative Fit Index (CFI), Tucker-Lewis index (TLI), mean square error of approximation (RMSEA) and standardized root mean squared residual (SRMR). Values of the CFI and TFI \> 0.95 and SRMR \< 0.08 and RMSEA \<0.06 indicates a good model fit [@Hu_Bentler_1999].
+
+# Results
+
+## Socio-demographic results
+
+Comparison between socio-demographic groups suggested significant differences in general intelligence, analytical thinking and religious fundamentalism between these groups. Results of this comparison are reported in the table 1.
+
+\pagebreak
+
+```{r socdem comparison, include=FALSE}
+source("mult.g.comp.R")
+
+d = mult.g.comp(df = data.exlore.relig, 
+                outcome.var = c("MDFI","CRT","RSPM","CONSP"), 
+                groups = c("Religiosity","Gender","Family_status","Education","Economical_status"))
+
+# there are interesting relationships between CRT, RSPM and gender
+# data.exlore.relig  %>% ggplot(aes(y = RSPM, Age)) + geom_point() + geom_smooth()+facet_grid(~Gender)
+# data.exlore.relig  %>% ggplot(aes(y = CRT, Age)) + geom_point() + geom_smooth()+facet_grid(~Gender)
+
+# rstatix::dunn_test(CRT ~ Economical_status, data = data.exlore.relig, p.adjust.method = "bonferroni") %>% mutate(across(starts_with("p"), ~format_p(.)))
+```
+
+```{r}
+apa_table(d, caption = "Socio-demographic comparisson and group differences",
+          note = "* p < 0.05; ** p < 0.01; *** p < 0.001; SD = standard deviation, M = mean, CONSP = Conspiracy beliefs, RSPM = Raven's Progressive Matrices , CRT = Cognitive Reflection Test, Spearman´s correlations were utilised, t values idicates use of Games-Howell test, Z value indicates use of the Dunn test") 
+```
+
+## Results of correlation analysis
+
+Correlation analysis revealed that there is a strong positive correlation between analytical thinking and general intelligence. Moreover, both analytical thinking and general intelligence weakly and negatively correlated with age. In addition, there was a weak negative correlation between conspiracy beliefs and both analytical thinking and general intelligence. Finally, there was medium positive association between conspiracy beliefs and religious fundamentalism. For further results of correlation analysis see table 2.
+
+```{r correlation table one, include=FALSE}
+# data.exlore %>% 
+#   mutate(questionnaire_duration = as.numeric(questionnaire_duration)) %>% 
+#   filter(questionnaire_duration < 5000) %>%  
+# ggplot(aes(y = RSPM, x = questionnaire_duration))+
+# geom_point()+
+# geom_smooth()
+
+variab.cor.data.pa=data.exlore.relig[, c("Age","CONSP","RSPM","CRT","MDFI","Gender","Education","Religiosity","Family_status")]
+# recode variables to numeric
+variab.cor.data.pa = variab.cor.data.pa %>% 
+  mutate_all(as.numeric)
+
+iter.cor.teq.fin.data.pa=corx(variab.cor.data.pa, method = "spearman", triangle = "lower", describe = c(M = mean, SD = sd), stars = c(0.05, 0.01, 0.001),note = "M = mean, SD = standard devation")
+iter.cor.teq.fin.data.pa
+```
+
+```{r}
+apa_table(iter.cor.teq.fin.data.pa$apa, caption = "Correaltion table with means and standard devations",
+          note = "* p < 0.05; ** p < 0.01; *** p < 0.001; SD = standard deviation, M = mean, CONSP = Conspiracy beliefs, RSPM = Raven's Progressive Matrices , CRT = Cognitive Reflection Test, Spearman´s correlations were utilised") 
+```
+
+## Mediation analysis 
+
+```{r exploration of the structure, eval=FALSE, include=FALSE}
+# exploration of the factor structure of the MNA
+# a=data.raw %>% 
+#   select(starts_with(c("MNA_1","MNA_2", "MNA_3", "MNA_4", "MNA_5", "MNA_6"))) %>% 
+#   ufs::scaleDiagnosis()
+
+pca.psyc = data.exlore %>% 
+  select(starts_with(c("rec_RSPM_","CRT_rec_1","MDFI_"))) %>% 
+  psych::fa.parallel(fa = "pc", fm = "wls")
+
+
+pca.psyc = data.exlore %>% 
+  select(starts_with(c("MDFI_"))) %>% 
+  psych::fa(fm = "wls", nfactors = 2)
+
+dssss=fa_table(pca.psyc)
+dssss$ind_table
+
+# suggests 2 components
+
+# Exproratory graph analyses (network analyses)
+#...................................
+# https://towardsdatascience.com/exploratory-graph-analysis-3d4f9c63e92f
+
+ega.HSQ <- EGA(
+    select(data.exlore, starts_with(c("rec_RSPM_","CRT_rec_1",
+                                      "CRT_rec_2",
+                                      "CRT_rec_3","MDFI_"))),
+    uni.method = "LE",
+    corr = "cor_auto",
+    model = "glasso",
+    algorithm = "walktrap",
+    plot.EGA = TRUE,
+    plot.type = "qgraph", 
+    color = c("#232B17", "#CBBDA4","#2888AB")
+)
+
+# for color change
+# color_palette_EGA(name = "blue.ridge1", wc = a$wc)
+
+# Bootstrapping
+bootdata <- bootEGA(select(data.exlore, starts_with(c("rec_RSPM_","CRT_rec_1",
+                                      "CRT_rec_2",
+                                      "CRT_rec_3","MDFI_"))),
+                    iter= 1000, type = "resampling")
+
+# what is confidence interval of the finded number of clusers
+bootdata$summary.table
+
+# what is the highest frequency of the clusters found in data
+bootdata$frequency
+
+# stability of items
+ic.HSQ <- itemStability(bootdata)
+```
+
+```{r mediation analysis RSPM - CONSP, message=FALSE, warning=FALSE, include=FALSE}
+# controlling for Religiosity - we did not controlled for religiosity as it was expected that religious individuals are more likely to be part of church or religious organization
+mod.0.intell <- '
+            # latent variable
+            Intell =~ RSPM_11 + RSPM_24 + RSPM_36 + RSPM_43 + RSPM_48 + RSPM_49 + RSPM_53 + RSPM_55 
+            
+            # regression analysis
+            CONSP ~ c*Intell 
+            
+            # controlling for age 
+            CONSP ~ Age
+            Intell ~ Age
+            
+            # controling for gender
+            CONSP ~ Gender
+            Intell ~ Gender
+            
+            # controling for Education
+            CONSP ~ Education
+            Intell ~ Education
+         '
+
+# creating dataset with gender as Dummy coded variable AND removing old variables and replace them with recoded ones
+data.exlore.relig.gen.intell = data.exlore.relig %>% 
+  mutate(Gender = as.numeric(Gender)) %>% 
+  mutate(Education = as.numeric(Education)) %>% 
+  mutate(Religiosity = as.numeric(Religiosity)) %>%
+  select(!starts_with(c("RSPM_","CONSP_"))) %>% 
+  rename_all(~str_replace(., "rec_",""))
+  
+fit.0.intell <- sem(mod.0.intell, data = data.exlore.relig.gen.intell, estimator = "DWLS", se = "bootstrap", std.lv=T)
+
+semPaths(fit.0.intell, what='std', nCharNodes=10, sizeMan=10, optimizeLatRes = T, edge.label.position = 0.70,
+         edge.label.cex=1.25, curvePivot = TRUE, fade=FALSE, 
+         weighted = T, rotation = 1, layout = "tree", residuals = F)
+
+ # fit.0.intell %>% summary(fit.measures=TRUE, standardize=TRUE, rsquare=TRUE)
+ 
+ parameterEstimates(fit.0.intell, boot.ci.type = "bca.simple", standardized = T)
+#[----------------------------------------------------------------------------------]
+# table into presentation
+tabl.mod.0.intell =  fit.0.intell %>% 
+    parameterEstimates(boot.ci.type = "bca.simple", standardized = T)
+
+# extracting and recording
+filter.sem.tab = function(tab.mod, filter) {
+tabl.mod.def =  tab.mod %>% 
+  filter(op %in% "~") %>% 
+  select(rhs,std.all,pvalue,est,ci.lower, ci.upper) %>% 
+  rename("Direct and mediated effects" = rhs,
+         `B` = est, 
+         `Beta` = std.all,
+         "p-value" = pvalue) %>% 
+  mutate("Direct and mediated effects" = ifelse(str_detect(
+    `Direct and mediated effects`, "Intell"), "RSPM - CONSP (direct)", `Direct and mediated effects`)) %>% 
+  mutate(`p-value` =  format_p(`p-value`)) %>% 
+  as.tibble() %>% 
+  filter(`Direct and mediated effects` %in% filter) %>% 
+    # add_row(.before = 0) %>% 
+    add_row(.before = 1,
+            `Direct and mediated effects` = "Model 1") %>% 
+  return(tabl.mod.def)
+}
+
+fit.0.intell.stat = filter.sem.tab(tab.mod = tabl.mod.0.intell, filter = "RSPM - CONSP (direct)") 
+fit.0.intell.stat %>% print()
+# CRT             -4.02 -0.196 p = 0.001
+
+# CONTROlling for another variable: 
+# https://paolotoffanin.wordpress.com/2017/05/06/multiple-mediator-analysis-with-lavaan/comment-page-1/
+```
+
+```{r mediation analysis RSPM vs CONSP VS MDFI, message=FALSE, warning=FALSE, include=FALSE}
+# controlling for Religiosity - we did not controlled for religiosity as it was expected that religious individuals are more likely to be part of church or religious organization
+mod.1 <- paste0(mod.0.intell, '
+           # mediator
+            CONSP ~ b*MDFI
+            MDFI ~ a*Intell
+            
+           # indirect effect (a*b)
+             indir.MDFI := a*b
+             
+           # total effect
+             total := c + (a*b)
+             
+           # controlling for age 
+            MDFI ~ Age
+            
+            # controling for gender
+            MDFI ~ Gender
+            
+            # controling for Education
+            MDFI ~ Education
+            
+            # controling for Religiosity - we did not controlled for religiosity as it was expected that religious individuals are more likely to be part of church or religious organization
+            
+         '
+)
+
+fit.1.intell <- sem(mod.1, data = data.exlore.relig.gen.intell, estimator = "DWLS", se = "bootstrap")
+
+semPaths(mod.1, what = "col", whatLabels = "par", style = "mx",
+         rotation = 2, layout = "tree2", mar = c(1, 2, 1, 2), nCharNodes = 7,
+         shapeMan = "rectangle", sizeMan = 8, sizeMan2 = 5)
+
+ # semPaths(fit.1.intell, what='std', nCharNodes=6, sizeMan=10,
+ #         edge.label.cex=1.25, curvePivot = TRUE, fade=FALSE, 
+ #        weighted = T, rotation = 1, layout = "tree", residuals = F)
+ 
+ # semPaths(fit.1.intell, style="lisrel", edge.label.position = 0.6,
+ #        whatLabels = "std", edge.label.cex = .9, node.label.cex = .5,
+ #        label.prop=0.9, edge.label.color = "black", rotation = 3,
+ #        equalizeManifests = FALSE, optimizeLatRes = TRUE, node.width = 1.9,
+ #        edge.width = 0.5, shapeMan = "rectangle", shapeLat = "ellipse",
+ #        shapeInt = "triangle", sizeMan = 4, sizeInt = 4, sizeLat = 4,
+ #        curve=2, unCol = "#070b8c")
+ 
+ # fitmeasures(fit.1.intell)
+
+parameterEstimates(fit.1.intell, boot.ci.type = "bca.simple", standardized = T)
+#[----------------------------------------------------------------------------------]
+# table into presentation
+tabl.mod.1 =  fit.1.intell %>% 
+  parameterEstimates(boot.ci.type = "bca.simple", standardized = T)
+
+# extracting and recording
+fit.1.intell.stat =  tabl.mod.1 %>% 
+  filter(label == "indir.MDFI" | 
+         label == "a" |
+         label == "c" |
+         label == "b" ) %>%
+  select(label,est,pvalue,std.all, ci.lower, ci.upper) %>% 
+  rename("Direct and mediated effects" = label,
+         `B` = est, 
+         `Beta` = std.all,
+         `p-value` = pvalue) %>% 
+  mutate(`Direct and mediated effects` = str_replace(string = `Direct and mediated effects`,
+                                         pattern = "^indir.MDFI$",
+                                         replacement = "MDPI (indirect)"),
+         
+         `Direct and mediated effects` = str_replace(string = `Direct and mediated effects`,
+                                         pattern = "^c$",
+                                         replacement = "RSPM - CONSP (direct)"),
+         
+        `Direct and mediated effects` = str_replace(string = `Direct and mediated effects`,
+                                         pattern = "^a$",
+                                         replacement = "RSPM - MDPI (direct)"),
+         
+         `Direct and mediated effects` = str_replace(string = `Direct and mediated effects`,
+                                         pattern = "^b$",
+                                         replacement = "MDFI - CONSP (direct)")) %>%
+  mutate(`p-value` =  format_p(`p-value`)) %>% 
+  as.tibble() %>% 
+    add_row(.before = 0) %>% 
+      add_row(.before = 2,
+      `Direct and mediated effects` = "Model 2") 
+```
+
+```{r mediation analysis CRT vs CONSP VS MDFI vs RSPM, message=FALSE, warning=FALSE, include=FALSE}
+mod.2.intell <- paste0(mod.1,'
+       # latent variable
+            AT =~ CRT_1 + CRT_2 + CRT_3
+            
+        # mediator 2 
+            CONSP ~ a_2*AT
+            Intell ~ b_2*AT
+            
+        # indirect effect (a*b)
+            indir.analy := a_2*b_2
+             
+         # total effect
+            total2 := c + (a_2*b_2)
+             
+          # controlling for age 
+            AT ~ Age
+            
+          # controling for gender
+            AT ~ Gender
+            
+          # controling for Education
+            AT ~ Education
+             
+         '
+)
+
+fit.2.intell <- sem(mod.2.intell, data = data.exlore.relig.gen.intell, estimator = "DWLS", se = "bootstrap", std.lv=T,
+             ordered=names(c("RSPM_11", "RSPM_24", "RSPM_28", 
+                             "RSPM_36", "RSPM_43", "RSPM_48",
+                             "RSPM_49", "RSPM_53", "RSPM_55")))
+
+
+# https://www.alexlishinski.com/post/lavaanplot-0-5-1/
+lavaanPlot(model = fit.2.intell, node_options = list(shape = "circle", fontname = "Helvetica"),
+           edge_options = list(color = "black"), coefs = T, stand = T, covs = TRUE, 
+           stars = c("regress","latent"))
+
+ semPaths(fit.2.intell, style="ram", edge.label.position = 0.6,
+        whatLabels = "std", edge.label.cex = .8,  curveAdjacent = TRUE,
+        label.prop=0.9, edge.label.color = "black", rotation = 2,layout="tree3",
+        equalizeManifests = FALSE, optimizeLatRes = TRUE, node.width = 1.9,
+        edge.width = 0.5, shapeMan = "rectangle", shapeLat = "ellipse",
+        shapeInt = "triangle", sizeMan = 4, sizeInt = 4, sizeLat = 4,
+        curve=2, unCol = "#070b8c")
+ 
+ # fit.2.intell %>% summary(fit.measures=TRUE, standardize=TRUE, rsquare=TRUE)
+ 
+ parameterEstimates(fit.2.intell, boot.ci.type = "bca.simple", standardized = T)
+ 
+#[----------------------------------------------------------------------------------]
+ # table into presentation
+tabl.mod.2.intell =  fit.2.intell %>% 
+    parameterEstimates(boot.ci.type = "bca.simple", standardized = T)
+
+# extracting and recording
+fit.2.intell.stat =  tabl.mod.2.intell %>% 
+  filter(label == "indir.analy" | # intelligence as mediator 
+           label == "c_2" |              # direct effect of intelligence on conspiracy beliefs
+           label == "c"   |              # direct effect of analytical thinking
+           label == "a"   |              # direct effect of analytical thinking on fundamentalism
+           label == "indir.MDFI"   |     # indirect effect of fundamentalism on conspiracy beliefs
+           label == "b") %>%              # direct effect of fundamentalism on conspiracy beliefs           
+  select(label,est,pvalue,std.all, ci.lower, ci.upper)  %>% 
+  rename("Direct and mediated effects" = "label",
+         `B` = est, 
+         `Beta` = std.all,
+         `p-value` = pvalue) %>% 
+    mutate(`Direct and mediated effects` = str_replace(string = `Direct and mediated effects`,
+                                         pattern = "c$",
+                                         replacement = "RSPM - CONSP (direct effect)")) %>%
+      mutate(`Direct and mediated effects` = str_replace(string = `Direct and mediated effects`,
+                                         pattern = "^b$",
+                                         replacement = "MDFI - CONSP (direct effect)")) %>%
+      mutate(`Direct and mediated effects` = str_replace(string = `Direct and mediated effects`,
+                                         pattern = "c_2",
+                                         replacement = "CRT - CPNSP (direct effect)")) %>%
+        mutate(`Direct and mediated effects` = str_replace(string = `Direct and mediated effects`,
+                                         pattern = "indir.analy",
+                                         replacement = "RSPM - CRT - CONSP (indirect effect)"),
+               `Direct and mediated effects` = str_replace(string = `Direct and mediated effects`,
+                                         pattern = "^a$",
+                                         replacement = "CRT - MDFI (direct effect)"),
+                `Direct and mediated effects` = str_replace(string = `Direct and mediated effects`,
+                                         pattern = "^indir.MDFI$",
+                                         replacement = "RSPM - MDFI - CONSP (indirect effect)")) %>%
+  mutate(`p-value` =  format_p(`p-value`)) %>% 
+  as.tibble() %>% 
+  add_row(.before = 0) %>% 
+      add_row(.before = 2,
+      `Direct and mediated effects` = "Model 3") 
+```
+
+  In the first step (model 1), we examined whether cognitive ability will predict conspiracy beliefs. It was revealed that with one unit increase in cognitive ability, a number of conspiracy theories towards which people were hesitate or believed in decreased by `r select(fit.0.intell.stat, c("Direct and mediated effects","B")) %>% filter(!str_detect(., pattern = "RSPM - CONSP")) %>% select(B) %>% as.numeric() %>% round(digits = 2)` (table 3). Furthermore, as correlation matrix indicated that there is a positive association between conspiracy belief, religious fundamentalism and cognitive ability, we expected that religious fundamentalism might mediate relationship between cognitive ability and conspiracy beliefs. For this reason, in the next step (model 2), mediation variable i.e. religious fundamentalism was added into the SEM model. 
+Results revealed that adding religious fundamentalism partially mediated the direct effect of analytical thinking on conspiracy beliefs (table 3). In more detail, with every one unit increase in the MDFI score, the number of conspiracy theories in which people believed in or to which they were hesitated to increased by `r select(fit.1.intell.stat, c("Direct and mediated effects","B")) %>% filter(if_any(everything(), ~str_detect(., "MDFI - CONSP"))) %>% select(B) %>% as.numeric() %>% round(digits = 2)` (table 3). 
+
+```{r mediation table creation}
+tab.3 = bind_rows(fit.0.intell.stat,
+                  fit.1.intell.stat,
+                  fit.2.intell.stat) %>% 
+  mutate_if(is.numeric, round, 2) %>% 
+  janitor::remove_empty(which = c("rows")) %>% # this has to be here as apa_table function seems not to process empty rows well
+  mutate("B (95% CI)" = paste0(B,"(",ci.lower,",",ci.upper,")")) %>% 
+  mutate_all(~(replace(., is.na(.), ""))) %>% 
+  mutate_all(~(str_replace(., "[(]NA,NA[)]", ""))) %>% 
+  mutate_all(~(str_replace(., "NA", ""))) %>% 
+  select(-c("ci.lower","ci.upper","B")) %>% 
+  mutate_all(~(str_replace_all(., c("Model 1" = "**Model 1**",
+                                    "Model 2" = "**Model 2**",
+                                    "Model 3" =  "**Model 3**"))))
+```
+
+```{r}
+tab.3 %>% 
+  as_tibble() %>% 
+     mutate_all(~(replace(., is.na(.), ""))) %>% 
+  as_huxtable(add_colnames = F) %>% 
+apa_table(caption = "Direct and indirect effects of the three SEM models",
+          note = "RSPM = Ravens Standardized Progresive Matrices,
+          CONSP = Belief in Conspiracy Theories,
+          MDFI = Multi-Dimensional Fundamentalism Inventory,
+          CRT = Cognitive Reflection Test
+          ")
+# flextable(as.data.frame(tab.3)) %>% knit_print()
+```
+
+Correlation matrix also indicated that cognitive ability was strongly correlated with analytical thinking (table 2). Therefore, it was possible that if analytical thinking would be taken into account, cognitive ability would not predict conspiracy theories anymore. For this reason, in the final step (model 3), we added analytical thinking into structural equation model. It was found that cognitive ability as well as analytical thinking no longer predicted conspiracy beliefs. In more detail, no significant association with conspiracy beliefs and analytical thinking was present, when shared variance with the cognitive ability was taken into account (figure 1). Table 5 presents Goodness of fit of individual SEM models. Results suggests that adding new predictors lead to increase in model fit and thus, non of these predictors were added redundantly. 
+
+```{r my-figure1, fig.cap="(ref:my-figure1-caption)", fig.height=9, fig.width=9, message=FALSE, warning=FALSE, include=FALSE}
+ # semPaths(fit.1.intell, style="lisrel", edge.label.position = 0.6,
+ #        whatLabels = "std", edge.label.cex = .9,
+ #        label.prop=0.9, edge.label.color = "black", rotation = 3,
+ #        equalizeManifests = FALSE, optimizeLatRes = TRUE, node.width = 1.9,
+ #        edge.width = 0.5, shapeMan = "rectangle", shapeLat = "ellipse",
+ #        shapeInt = "triangle", sizeMan = 4, sizeInt = 4, sizeLat = 4,
+ #        curve=2, unCol = "#070b8c")
+
+plot1 = lavaanPlot(model = fit.2.intell, 
+                   node_options = list(shape = "box", fontname = "Helvetica"), # fontsize = "15" can be add to the list to increase sie in both nodes_options as well as in edges_options
+                   edge_options = list(color = "black", fontsize = "11"), coefs = T, stand = T, covs = TRUE, 
+                   stars = c("regress","latent"))
+
+save_png(plot1, paste0(getwd(),"/images/","plot.png"))
+```
+
+<!-- (ref:my-figure1-caption) The SEM diagram depicting mediating relationship of religious fundamentalism on the link between analytical thinking and conspiracy beliefs (*n*=`r nrow(data.exlore.relig.gen.intell)`). -->
+
+![The SEM diagram depicting mediating relationship of religious fundamentalism on the link between analytical thinking and conspiracy beliefs; MDFI = MDFI = Multi-Dimensional Fundamentalism Inventory; RSPM = Ravens Standardized Progresive Matrices; Analy = Analytical thinking; CRT = Cognitive Reflection Test; CONSP = Belief in Conspiracy Theories; * p < 0.05; ** p < 0.01; *** p < 0.001; *n*=`r nrow(data.exlore.relig.gen.intell)`](images/plot.png)
+
+\pagebreak
+
+```{r table fit, message=FALSE, warning=FALSE, include=FALSE}
+
+colnames=c("Model","x2","df","pvalue","CFI","TLI","rmsea","rmsea.ci.lower", "rmsea.ci.upper", "SRMR")
+
+tab.fit.intell <- as_tibble(matrix(nrow = length(mget(ls()) %>% names %>% str_subset(string = ., pattern = "^fit")),
+                            ncol = length(colnames), dimnames = list(NULL, colnames)))
+
+tab.fit.intell = bind_rows(c("Model"= "RSPM - COSNP", 
+                      round(fitMeasures(fit.0.intell,
+                                        c('chisq', 'df', 'pvalue',
+                                          'cfi',"tli",'rmsea',"rmsea.ci.lower",
+                                          "rmsea.ci.upper", 'srmr')), digits = 3)))
+
+tab.fit.intell = tab.fit.intell %>% 
+  bind_rows(c("Model"= "RSPM - COSNP - MDFI", 
+                      round(fitMeasures(fit.1.intell,
+                                        c('chisq', 'df', 'pvalue',
+                                          'cfi',"tli",'rmsea',"rmsea.ci.lower",
+                                          "rmsea.ci.upper", 'srmr')), digits = 3)))
+
+tab.fit.intell = tab.fit.intell %>% 
+  bind_rows(c("Model"= "RSPM - COSNP - MDFI - CRT", 
+                      round(fitMeasures(fit.2.intell,
+                                        c('chisq', 'df', 'pvalue',
+                                          'cfi',"tli",'rmsea',"rmsea.ci.lower",
+                                          "rmsea.ci.upper", 'srmr')), digits = 3)))
+
+tab.fit.intell = tab.fit.intell %>%
+    mutate(across(starts_with(c("rmsea","srmr")), ~ifelse(. == 0.00000, "0.000", .))) %>% 
+  mutate(rmsea = paste0(rmsea, " ","(",rmsea.ci.lower,"-",rmsea.ci.upper,")")) %>% 
+  rename(
+         "RMSEA (90% CI)" = "rmsea") %>% 
+  select(!starts_with(c("rmsea.ci.","rmsea.ci.lower","rmsea.ci.upper"))) 
+```
+
+```{r}
+# creating table 
+tab.fit.intell %>% 
+  as_tibble() %>% 
+     mutate_all(~(replace(., is.na(.), ""))) %>% 
+  as_huxtable(add_colnames = F) %>% 
+  apa_table(col.names=c("Model","x2","df","p-value","CFI","TLI","RMSEA","SRMR"),
+          caption = "Goodness of fit indices values of modles tested in SEM", 
+          note = "x2 = chi-square, df = degrees of freedom, CFI = Comparative Fit Index, TLI = Tucker-Lewis index, RMSEA = Root Mean Square Error of Approximation , CI = Confidence Interval, SRMR = Standardized Root Mean Square Residual, SEM = Structural Equation Modelling")
+```
+
+# Discussion
+
+Val v diskusi bych zmínil debatu o tom, nakolik CRT skutečně měří intuitivní a myšlení a nakolik numerické schopnosti či obecnou inteligenci. Jinak řečeno, linka by byla následující:
+
+1)  víme, že CRT byl vytvořen tak aby měřil intuitivní a analytické myšlení dle duální teorie Kahnemana a Traverskeho - dodat reference
+
+2)  současně víme, že zde existují studie, které indikují, že spíše než analytické/intuitivní myšlení, měří CRT ve skutečnosti numerické schopnosti (https://doi.org/10.3389/fpsyg.2015.00532) či obecnou inteligenci (https://cogsci.mindmodeling.org/2013/papers/0296/index.html) např  - dodat další reference
+
+3)  pokud je bod 2 pravda, pak by se neměla objevit souvislost mezi CRT a konspiračními teoriemi, když budeme kontrolovat obecnou inteligenci
+
+4)  ačkoli sice existují studie (<https://doi.org/10.3389/fpsyg.2015.00532>), které již prokázaly, že decision biasy, dokáží spíše předpovědět numerické schonosti či obecná inteligence než CRT, žádná ze studií neprozkoumala tuto souvislost u konspiračních teorií, které jsou v souvislosti s CRT často zkoumány
+
+5)  Abychom tedy přispěli k dikusím o tom, do jaké míry měří CRT dokáže předpovědět konspirační teorie poza to, co má společné s obecnou inteligencí, rozhodli jsme se realizovat tuto studii
+
+6)  skutečně jsme zjistili, že CRT had no significant association with conspiracy beliefs, when shared variance with the cognitive ability was taken into account
+
+## Implications for theory
+
+**Implications for research and practice**
+
+# Supplementary material
+
+# References
+
+```{=tex}
+\begingroup
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+```
+::: {#refs custom-style="Bibliography"}
+:::
+
+```{=tex}
+\endgroup
+```
